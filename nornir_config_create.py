@@ -15,23 +15,21 @@ __license__ = "Python"
 import argparse
 import nornir_discovery
 from nornir.core import InitNornir
-from nornir.plugins.tasks import networking, text
+# from nornir.plugins.tasks import networking, text
 from nornir.plugins.functions.text import print_result
 from nornir.plugins.tasks.text import template_file
 
 
+def config_to_file(task, arg={}):
+    """
+    Nornir Task
 
-def config_to_file(task,arg={}):
-    # print(task)
+    :param task:
+    :param arg:
+    :return:
+    """
 
     j2template = 'vlan_updates.j2'
-    # j2template = 'test.j2'
-
-    # http://nornir.readthedocs.io/en/latest/plugins/tasks/text.html
-    # cfg_result = task.run(task=template_file, template=j2template, path='', info=arg)
-
-    # print(cfg_result[0])
-    # print(dir(cfg_result))
 
     filename = "cfg-{}.txt".format(task.host)
 
@@ -45,25 +43,20 @@ def config_to_file(task,arg={}):
 
 def main():
 
-
+    # Get our shov vlan output from each device in our inventory
     send_commands=['show vlan']
-
     output_dict = nornir_discovery.send_napalm_commands(send_commands, show_output=True, debug=False)
 
+    # Set the TextFSM template we will be using to parse the show vlan output so we get it back in a way we can use
     template_filename = 'cisco_ios_show_vlan.template'
+    # Define the Jinja2 template file we will use to build our custom commands for each device
+    j2template = 'vlan_updates.j2'
+    # Initialize the vlan dictionary we will send to our Jinja2 template
+    j2_data_dict = {}
 
+    # ======= Define the Nornir Environment ========
     nornir_instance = InitNornir()
 
-    # nornir_instance.inventory.hosts.update({'test':"somevalue"})
-
-    # print(nornir_instance.inventory.hosts.values)
-    # print(dir(nornir_instance.inventory.hosts))
-    # print("******")
-    j2template = 'vlan_updates.j2'
-    j2template = 'test.j2'
-
-
-    j2_data_dict = {}
 
     # For each device lets build out the list of vlans which must be removed
     for dev, output in output_dict.items():
@@ -87,27 +80,15 @@ def main():
         # This will be passed along when we build our configs
         j2_data_dict.update({dev: remove_vlan_list})
 
-    # nornir_instance.inventory.hosts.update({'remove_vlan_list': remove_vlan_list})
-    #
-    # nornir_instance.inventory.hosts.update
-    # print(j2_data_dict)
-
+    # ====== Generate Configs
+    # Execute a task "run" in the Nornir environment using our config_file Task function and pass it the customized data
+    # which is required to build out a custom config for each device removing any unused vlans and adding the standard
+    # vlans
     r = nornir_instance.run(task=config_to_file, arg=j2_data_dict)
-    # print_result(r, vars=['stdout'])
+
     print("\n")
     print_result(r, vars=['stdout'])
 
-    # j2_data_dict[dev] = remove_vlan_list
-    # print(j2_data_dict)
-    #
-    #
-    #
-    #
-    #
-    # print(cfg_result)
-    # print(cfg_result.keys())
-    # for k in cfg_result.keys():
-    #     print(cfg_result[k].result)
 
 
 # Standard call to the main() function.
@@ -115,8 +96,5 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Script Description",
                                      epilog="Usage: ' python nornir_config_create' ")
 
-    #parser.add_argument('all', help='Execute all exercises in week 4 assignment')
-    parser.add_argument('-a', '--all', help='Execute all exercises in week 4 assignment', action='store_true',
-                        default=False)
     arguments = parser.parse_args()
     main()
