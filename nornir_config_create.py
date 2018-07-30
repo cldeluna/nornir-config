@@ -86,7 +86,9 @@ def main():
     r = nornir_instance.run(task=config_to_file, arg=j2_data_dict)
 
     print("\n")
+    # Prints abbreviated output
     print_result(r, vars=['stdout'])
+    # Prints full output -- good for troubleshooting
     # print_result(r)
 
 
