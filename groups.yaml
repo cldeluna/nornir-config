@@ -1,0 +1,21 @@
+---
+uwaco_network:
+  nornir_username: cisco
+  nornir_password: cisco
+  nornir_nos: ios
+
+uwaco_datacenter:
+  nornir_username: cisco
+  nornir_password: cisco
+  nornir_nos: ios
+
+access:
+  nornir_username: cisco
+  nornir_password: cisco
+  nornir_nos: ios
+  model: 3800
+
+defaults:
+  nornir_username: cisco
+  nornir_password: cisco
+  nornir_nos: ios

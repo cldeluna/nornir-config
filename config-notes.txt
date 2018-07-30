@@ -1,0 +1,36 @@
+
+
+
+I tend to assess automation tools in three different contexts.
+
+Discovery
+	how easy is it to find out about the network, document its configuration (the configuration of a device itself) and state (show commands "snapshotting" its state)
+
+Configuration Creation
+
+	how easy is it to generate configurations for a device
+
+Configuration Application
+	how easey is it to apply a set of configuration commands to one or more devices based on criteria
+
+
+it drove me crazy that the first thing everyone always taught in Ansible was how to generate configs because thats not what I found powerful about it.   So I was pleased that most of the early Nornir examples started with what I call "discovery".
+
+I'm not doing too much here with idempotency or "declarative" networking but I find that I understand things a bit better if i look at it from the current "classical" perspective and then look at how these tools can help leapfrog me into a much more efficient way of doing things.
+
+
+In keeping with my "assessment methodology" (trust me that sounds far more rigorous than it is) my first use of Nornir (then called brigade) involved using Napalm get_facts against a couple of network devices.  In this way was was easily able to discover key facts about all the network devices in my inventory and return them in a standard data structure.  
+
+Lets look at configuration creation now.  
+
+I have a simple task I want to accomplish.  I need to evaluate all of my switches and remove any vlans that are not in use.  
+
+Lets do this 
+
+
+
+
+
+
+
+Another scenario where nornir has proved to be incredibly useful is one where for whatever reason I'm not able to install Ansible (this is often on a Clients system or in their environment) but I am able to install python (which apparently seems less threatening).

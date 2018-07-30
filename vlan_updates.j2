@@ -1,0 +1,25 @@
+
+! For device {{ device }}
+
+! Vlans to Remove
+
+{% for line in vlan_data_list %}
+
+{% if ints == 0 %}
+
+no vlan{{ vlan_id }}
+
+{% endif %}
+{% endfor %}
+
+vlan 10
+ name Data_Vlan
+
+vlan 100
+ name Voice_Vlan
+
+vlan 300
+ name Digital_Signage
+
+vlan 666
+ name User_Static_IP_Devices
