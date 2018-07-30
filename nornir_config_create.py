@@ -33,7 +33,7 @@ def config_to_file(task,arg={}):
     # print(cfg_result[0])
     # print(dir(cfg_result))
 
-    filename = "{}.txt".format(task.host)
+    filename = "cfg-{}.txt".format(task.host)
 
     task.host["rendered_cfg"] = task.run(task=template_file, template=j2template, path='', info=arg)
 
