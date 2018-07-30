@@ -6,7 +6,9 @@ eu-med-as01:
 
 pacific-as01:
   nornir_host: 10.1.10.203
-  groups: ['uwaco_network']
+  groups:
+    - 'uwaco_network'
+    - 'access'
 
 
 ToR_esx01:
@@ -23,3 +25,4 @@ arctic-as01:
 #
 #test-fail:
 #  nornir_host: 10.1.10.77
+#  groups: ['uwaco_network']

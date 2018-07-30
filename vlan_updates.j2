@@ -2,8 +2,6 @@
 ! For device {{ host }}
 !
 
-! Vlans to Remove {{ info[host.name] }}
-
 {% for vlan2remove in info[host.name] %}
 no vlan{{ vlan2remove }}
 
