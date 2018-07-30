@@ -28,15 +28,23 @@ def config_to_file(task,arg={}):
     # j2template = 'test.j2'
 
     # http://nornir.readthedocs.io/en/latest/plugins/tasks/text.html
-    cfg_result = task.run(task=template_file, template=j2template, path='', info=arg)
+    # cfg_result = task.run(task=template_file, template=j2template, path='', info=arg)
 
-    # print(cfg_result)
+    # print(cfg_result[0])
+    # print(dir(cfg_result))
 
+    filename = "{}.txt".format(task.host)
 
+    task.host["rendered_cfg"] = task.run(task=template_file, template=j2template, path='', info=arg)
 
+    with open(filename,"w") as cfg_file:
+        cfg_file.write(str(task.host['rendered_cfg'][0]))
+
+    print("\nCreated Configuration file {} for device {} in local directory...".format(task.host,filename))
 
 
 def main():
+
 
     send_commands=['show vlan']
 
@@ -85,8 +93,9 @@ def main():
     # print(j2_data_dict)
 
     r = nornir_instance.run(task=config_to_file, arg=j2_data_dict)
+    # print_result(r, vars=['stdout'])
+    print("\n")
     print_result(r, vars=['stdout'])
-
 
     # j2_data_dict[dev] = remove_vlan_list
     # print(j2_data_dict)
