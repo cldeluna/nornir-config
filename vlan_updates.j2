@@ -1,15 +1,12 @@
 
-! For device {{ device }}
+! For device {{ host }}
+!
 
-! Vlans to Remove
+! Vlans to Remove {{ info[host.name] }}
 
-{% for line in vlan_data_list %}
+{% for vlan2remove in info[host.name] %}
+no vlan{{ vlan2remove }}
 
-{% if ints == 0 %}
-
-no vlan{{ vlan_id }}
-
-{% endif %}
 {% endfor %}
 
 vlan 10
