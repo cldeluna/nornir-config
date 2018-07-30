@@ -24,7 +24,7 @@ We still have our groups.yaml file with a few more groups for us to use in the f
 
 groups.yaml
 
-```
+```yaml
 ---
 uwaco_network:
   nornir_username: cisco
@@ -61,7 +61,7 @@ https://brigade.readthedocs.io/en/latest/plugins/tasks/connections.html?highligh
 
 hosts.yaml
 
-```
+```yaml
 ---
 eu-med-as01:
   nornir_host: 10.1.10.201
@@ -234,7 +234,7 @@ Here is where we start getting into "all that Nornir" does for us.  I've just sc
 Lets look at the *config_to_file* function first.  
 
 
-```python {.line-numbers}
+```python{.line-numbers}
 def config_to_file(task, arg={}):
 
     # Define the Jinja2 template file we will use to build our custom commands for each device
@@ -259,13 +259,13 @@ The Jinja2 template itself is fairly straighforward. The "host" and "host.name" 
 
 If you want to see the raw data add a statement just above the for loop to display that particular variable.
 
-```
+```jinja2
 ! For device {{ host }}
 ! {{ info[host.name] }} <- add this to the vlan_updates.j2 file to display the list
 ```
 
 You will see something like this in the resulting configation file:
-```
+```jinja2
 ! For device arctic-as01
 ! [u'20', u'30', u'40']
 ```
@@ -274,7 +274,7 @@ So we know that "host" and "host.name" are passed to our function via Nornir but
 
 vlan_updates.j2 Jinja2 Template file
 
-```
+```jinja2
 
 ! For device {{ host }}
 !
@@ -301,7 +301,7 @@ We know what our Jinja2 template looks like now and hopefully we are getting an 
 
 This is our "money" command:
 
-```
+```python
 task.host["rendered_cfg"] = task.run(task=template_file, template=j2template, path='', info=arg)
 
 ```
@@ -314,7 +314,7 @@ Looking at the arguments we are giving to task.run
 - we are passing a path value that is empty so that Nornir will look for the Jinja2 tempalte in the current working directory.
 If we passed it path-'./templates' it would look for the jinja2 template in the templates directory under the current working directory
 
-```
+```python
 task.host["rendered_cfg"] = task.run(task=template_file, template=j2template, path='./templates', info=arg)
 ```
 
@@ -335,13 +335,13 @@ How do I know this?  Because that is what we passed the *config_to_file** task f
 
 In the main function of our *nornir_config_create.py* we called (or ran) the *config_to_file* function as a **task** in our Nornir instance.  In our case we also passed a dictionary called j2_data_dict into the optional arguemt variable "arg".  
 
-```
+```python
     r = nornir_instance.run(task=config_to_file, arg=j2_data_dict)
 ```
 
 When we called the template task in the the **config_to_file** function we passed it info=arg.
 
-```
+```python
 task.host["rendered_cfg"] = task.run(task=template_file, template=j2template, path='', info=arg)
 
 ```
