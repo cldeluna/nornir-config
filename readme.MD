@@ -16,13 +16,13 @@ This task may not be completely real world, but all the strategies and tools use
 
 ## Environment and Connections
 
-We spent a little bit of time reviewing the environment set up for Nornir when we first looked at Nornir. https://www.linkedin.com/pulse/my-first-brigade-claudia-de-luna/?published=t
+We spent a little bit of time reviewing the environment set up for Nornir when we [first looked at Nornir](https://www.linkedin.com/pulse/my-first-brigade-claudia-de-luna/?published=t).
 
 Lets expand on that here.
 
 We still have our groups.yaml file with a few more groups for us to use in the future.
 
-groups.yaml
+**groups.yaml**
 
 ```yaml
 ---
@@ -50,16 +50,16 @@ defaults:
 
 Our hosts.yaml file has expanded to 4 devices and has some additional attributes.  Notice that the group attribute has to be a list and I show two ways of entering that into your hosts file.  You can use the python ['element1', 'element2'] convention used for the eu-med-as01 device or the yaml indented "-"" notation used for the pacific-as01 device. Both are equally valid.
 
-Its a good practice to check you YAML files with a YAML linter.  If there are issues with these files, you won't get far!
-http://www.yamllint.com/
+Its a good practice to check you YAML files with a [YAML linter](http://www.yamllint.com/).  If there are issues with these files, you won't get far!
+
 
 The other item to point out here was the "wrinkle" I mentioned when describing the scenario.  Some devices do not support ssh.
-Thankfully, Kirk Byers (https://pynet.twb-tech.com/), author of Netmiko added Telnet support and Napalm, which leverages Netmiko for some device connections, can make use of it.   You can see how to do that below.
+Thankfully, [Kirk Byers](https://pynet.twb-tech.com/), author of Netmiko added Telnet support and Napalm, which leverages Netmiko for some device connections, can make use of it.   You can see how to do that below.
 
-We are leveraging the *optional_args* optional argument in the Nornir napalm connection Plugin.
-https://brigade.readthedocs.io/en/latest/plugins/tasks/connections.html?highlight=optional_args
+We are leveraging the *optional_args* optional argument in the [Nornir napalm connection Plugin](https://brigade.readthedocs.io/en/latest/plugins/tasks/connections.html?highlight=optional_args).
 
-hosts.yaml
+
+**hosts.yaml**
 
 ```yaml
 ---
@@ -234,7 +234,7 @@ Here is where we start getting into "all that Nornir" does for us.  I've just sc
 Lets look at the *config_to_file* function first.  
 
 
-```python{.line-numbers}
+```python {.line-numbers}
 def config_to_file(task, arg={}):
 
     # Define the Jinja2 template file we will use to build our custom commands for each device
@@ -335,23 +335,149 @@ How do I know this?  Because that is what we passed the *config_to_file** task f
 
 In the main function of our *nornir_config_create.py* we called (or ran) the *config_to_file* function as a **task** in our Nornir instance.  In our case we also passed a dictionary called j2_data_dict into the optional arguemt variable "arg".  
 
+In main:
 ```python
     r = nornir_instance.run(task=config_to_file, arg=j2_data_dict)
 ```
 
-When we called the template task in the the **config_to_file** function we passed it info=arg.
+When we called the template task in the the **config_to_file** function we passed it info=arg thus "handing off" **arg**, which contained our remove vlan dictionary for our Jinja2 template (j2_data_dict) into **info** which can now be directly referenced by our Jinja2 template.
 
+In **config_to_file** function:
 ```python
 task.host["rendered_cfg"] = task.run(task=template_file, template=j2template, path='', info=arg)
 
 ```
-I hope I'm not belaboring the point but I find that "chain" of variables all the way to the Jinja2 template can be a bit confusing.  Lets hope I've lessend the confusion and not added to it!
+
+In Jinja2 template **vlan_updates.j2**:
+```jinja2
+{% for vlan2remove in info[host.name] %}
+no vlan{{ vlan2remove }}
+
+{% endfor %}
+```
+
+I hope I'm not belaboring the point but I find that "chain" of variables all the way to the Jinja2 template can be a bit confusing (at least for me).  Lets hope I've lessend the confusion and not added to it!
+
+Finally lets look at our main function.  I've added comments throughout to try to more fully explain what is going on each step of the way.
+
+```python
+def main():
+
+    # Get our shov vlan output from each device in our inventory
+    send_commands=['show vlan']
+    output_dict = nornir_discovery.send_napalm_commands(send_commands, show_output=True, debug=False)
+
+    # Set the TextFSM template we will be using to parse the show vlan output so we get it back in a way we can use
+    template_filename = 'cisco_ios_show_vlan.template'
+
+    # Initialize the vlan dictionary we will send to our Jinja2 template
+    j2_data_dict = {}
+
+    # ======= Define the Nornir Environment ========
+    nornir_instance = InitNornir()
+
+
+    # For each device lets build out the list of vlans which must be removed
+    for dev, output in output_dict.items():
+
+        parsed_results = nornir_discovery.parse_with_texfsm(output, template_filename, debug=False)
+        remove_vlan_list = []
+
+        # For each Vlan we found configured on the device
+        for vlan_data in parsed_results:
+            # We are only interested in vlans between 1 and 999
+            # vlan_data[0] is the vlan number
+            if 1 < int(vlan_data[0]) < 1000:
+
+                ints_in_vlan = len(vlan_data[3])
+
+                # If the vlan has no associated interfaces, the add it to the remove_vlan_list list
+                if ints_in_vlan == 0:
+                    remove_vlan_list.append(vlan_data[0])
+
+        # Build a dictionary where the key is the device or host and the value the list of vlans to remove
+        # This will be passed along when we build our configs
+        j2_data_dict.update({dev: remove_vlan_list})
+
+    # ====== Generate Configs
+    # Execute a task "run" in the Nornir environment using our config_file Task function and pass it the customized data
+    # which is required to build out a custom config for each device removing any unused vlans and adding the standard
+    # vlans
+    r = nornir_instance.run(task=config_to_file, arg=j2_data_dict)
+
+    print("\n")
+    # Prints abbreviated output
+    print_result(r, vars=['stdout'])
+    # Prints full output -- good for troubleshooting
+    # print_result(r)
+
+```
+
+
+Upon sucessful exeution of this script you should see new configuration files with a "cfg-" prefix in your working directory.
+
+```bash
+(nornir) Claudias-iMac:nornir-config claudia$ ls -al cfg*
+-rw-r--r--@ 1 claudia  staff  149 Jul 30 16:31 cfg-ToR_esx01.txt
+-rw-r--r--@ 1 claudia  staff  184 Jul 30 16:31 cfg-arctic-as01.txt
+-rw-r--r--@ 1 claudia  staff  675 Jul 30 16:31 cfg-eu-med-as01.txt
+-rw-r--r--@ 1 claudia  staff  314 Jul 30 16:31 cfg-pacific-as01.txt
+(nornir) Claudias-iMac:nornir-config claudia$
+```
+
+
+Lets look at one. 
+
+```
+(nornir) Claudias-iMac:nornir-config claudia$ cat cfg-arctic-as01.txt
+
+! For device arctic-as01
+!
+
+no vlan20
+
+no vlan30
+
+no vlan40
+
+
+vlan 10
+ name Data_Vlan
+
+vlan 100
+ name Voice_Vlan
+
+vlan 300
+ name Digital_Signage
+
+vlan 666
+ name User_Static_IP_Devices
+
+```
+
+So for the switch with hostname arctic-as1, we are removing vlan20, 30, and 40 and adding the 4 standard vlans per our new policy.
+
+If you recall from the discovery script output:
+```
+== Parsing vlan output for device arctic-as01 using TextFSM and NetworkToCode template.
+================================================================================
+Analyzing Vlans and required actions to implement new vlan policy for device arctic-as01
+
+VLAN_ID NAME                    STATUS          TOTAL_INT_IN_VLAN       ACTION
+1       default                 active                           7      Keeping this vlan
+10      Management_Vlan         active                           1      Keeping this vlan
+20      Web_Tier                active                           0      This vlan will be removed!
+30      App_Tier                active                           0      This vlan will be removed!
+40      DB_Tier                 active                           0      This vlan will be removed!
+================================================================================
+
+```
+
+I think that is quite enough for now.  I hope all (or some) of this has been useful.   In our next installment I'll look at taking the customized configurations we've created and applyting them to each device and validating that each device is now compliant with our new vlan policy.
 
 
 
-
-
-Next Steps:
+## Next Steps:
 
 - Apply the configurations
 
@@ -362,7 +488,7 @@ Next Steps:
 - Idempotency (we have all the data we need!)
 
 - Refactor
-One of the things you will notice as you spend more and more time with automation is that you continually improve your code.  Your code will do the same thing but it will be better than it was before (cleaner, faster, more efficient, and more elegant).  Basically the 6 Million Dollar Man. https://youtu.be/0CPJ-AbCsT8
+One of the things you will notice as you spend more and more time with automation is that you continually improve your code.  Your code will do the same thing but it will be better than it was before (cleaner, faster, more efficient, and more elegant).  Basically the [6 Million Dollar Man](https://youtu.be/0CPJ-AbCsT8). 
 
 
 
