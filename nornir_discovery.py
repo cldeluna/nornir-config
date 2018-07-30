@@ -71,7 +71,34 @@ def send_napalm_commands(cmds, show_output=False, debug=False):
     return output_dict
 
 
+def parse_with_texfsm(content, template_file, debug=False):
 
+    template = open(template_file)
+
+    result_of_template = textfsm.TextFSM(template)
+
+    results = result_of_template.ParseText(content)
+
+    if debug:
+        print("\nKeys available when using the {} template:".format(template_file))
+        # This shows the "column headers" or fields names of the data we will get back from ParseText
+        print(result_of_template.header)
+        # This shows the field names and the REGEXP that is being used to pluck out the values
+        print(result_of_template.value_map)
+        print("\nDetails on the results variable...")
+        print("results is of type {}".format(type(results)))
+        print("results has {} element(s)".format(len(results)))
+        if isinstance(results, list):
+            for line in results:
+                print(line)
+        else:
+            print(results)
+
+        print("\n")
+
+
+
+    return results
 
 
 def main():
@@ -85,50 +112,47 @@ def main():
     #     print("device: {} \toutput: {}".format(k, v))
 
 
-    # Napalm does not have a get_vlan method just yet and so its up to us to get the vlan data into a
+    # Napalm does not have a direct get_vlan method just yet and so its up to us to get the vlan data into a
     # usable data structure
     # We will use TextFSM and lucky for us we can tap into the NetworkToCode textfsm repository for a
     # parsing template that will do just what we need!
     # https://github.com/networktocode/ntc-templates/blob/master/templates/cisco_ios_show_vlan.template
 
     # This assumes that the template is in the local directory. If it is elsewhere, make sure the template_file
-    # variable reflects that
+    # variable reflects the full path to the location.
     template_file = 'cisco_ios_show_vlan.template'
-    template = open(template_file)
 
-    result_of_template = textfsm.TextFSM(template)
-    print("\nKeys available when using the {} template:".format(template_file))
-    print(result_of_template.value_map.keys())
-
+    # Knowing that our dictionary keys are the devices and the values are a dictionary of one or more cli commands sent
     for dev, output in output_dict.items():
 
-        print("=" * 40)
         print("\n== Parsing vlan output for device {} using TextFSM and NetworkToCode template.".format(dev))
         # print("device: {} \t\noutput: {}".format(dev, output))
 
-        content2parse = output
+        # I broke out the parsing into a function because it can often be re-used elsewhere
+        # parsed_results will be a list.
+        # to print out values that can help with debuggign and undersatnding the data structures change debug to True
+        # debug=True
+        parsed_results = parse_with_texfsm(output, template_file, debug=True)
 
-        parsed_results = result_of_template.ParseText(content2parse)
+        print("=" * 40)
+        print("{:7}\t{:20}\t{:10}\t{:18}\t{}".format("VLAN_ID", "NAME", "STATUS", "TOTAL_INT_IN_VLAN", "ACTION"))
 
-        print("{:7}\t{:20}\t{:10}\t{:20}\t{}".format("VLAN_ID","NAME","STATUS","TOTAL_INT_IN_VLAN","ACTION"))
         for vlan_data in parsed_results:
-
             # We are only interested in vlans between 2 and 999
             # vlan_data[0] is the vlan number
             if 0 < int(vlan_data[0]) < 1000:
 
                 ints_in_vlan = len(vlan_data[3])
 
-
                 if ints_in_vlan == 0:
                     vlan_action = "This vlan will be removed!"
                 else:
                     vlan_action = "Keeping this vlan"
-                print("{:7}\t{:20}\t{:10}\t{:20}\t{}".format(vlan_data[0],vlan_data[1],vlan_data[2],
-                                                             len(vlan_data[3]),vlan_action))
+                print("{:7}\t{:20}\t{:10}\t{:18}\t{}".format(vlan_data[0], vlan_data[1], vlan_data[2],
+                                                             len(vlan_data[3]), vlan_action))
+        print("=" * 40)
 
 
-        print("="*40)
 
 # Standard call to the main() function.
 if __name__ == '__main__':
