@@ -15,7 +15,6 @@ __license__ = "Python"
 import argparse
 import nornir_discovery
 from nornir.core import InitNornir
-# from nornir.plugins.tasks import networking, text
 from nornir.plugins.functions.text import print_result
 from nornir.plugins.tasks.text import template_file
 
@@ -29,6 +28,7 @@ def config_to_file(task, arg={}):
     :return:
     """
 
+    # Define the Jinja2 template file we will use to build our custom commands for each device
     j2template = 'vlan_updates.j2'
 
     filename = "cfg-{}.txt".format(task.host)
@@ -49,8 +49,7 @@ def main():
 
     # Set the TextFSM template we will be using to parse the show vlan output so we get it back in a way we can use
     template_filename = 'cisco_ios_show_vlan.template'
-    # Define the Jinja2 template file we will use to build our custom commands for each device
-    j2template = 'vlan_updates.j2'
+
     # Initialize the vlan dictionary we will send to our Jinja2 template
     j2_data_dict = {}
 
@@ -88,7 +87,7 @@ def main():
 
     print("\n")
     print_result(r, vars=['stdout'])
-
+    # print_result(r)
 
 
 # Standard call to the main() function.
