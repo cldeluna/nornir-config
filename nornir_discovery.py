@@ -21,7 +21,9 @@ from nornir.plugins.functions.text import print_result
 
 def send_napalm_commands(cmds, show_output=False, debug=False):
     """
-    For a given list of commands, cmds, execute the napalm_cli method and return a dictionary of dictionaries
+    For a given list of commands, cmds, execute the napalm_cli method via Nornir Task
+    and return a dictionary of dictionaries
+
     First key = device
     Secondary key(s) = show commands executed via cmds
 
@@ -66,12 +68,23 @@ def send_napalm_commands(cmds, show_output=False, debug=False):
     else:
         print("ERROR! argument passed to function must be a list!  Will return empty dictionary.")
 
-    if show_output: print(print_result(cli_result))
+    if show_output: print_result(cli_result,  vars=['stdout'])
 
     return output_dict
 
 
 def parse_with_texfsm(content, template_file, debug=False):
+
+    """
+    Generic TextFSM Parsing Function
+    Given some content (already loaded in memory) and a TextFSM Template file, the content will be parsed and the
+    output returned.
+
+    :param content:
+    :param template_file:
+    :param debug:
+    :return: results
+    """
 
     template = open(template_file)
 
@@ -93,23 +106,24 @@ def parse_with_texfsm(content, template_file, debug=False):
                 print(line)
         else:
             print(results)
-
-        print("\n")
-
-
+        # print("\n")
 
     return results
 
 
 def main():
 
+    # create a list of commands to execute on each device
     send_commands=['show vlan']
-    output_dict = send_napalm_commands(send_commands, show_output=False)
 
-    # print("Device List: {}".format(output_dict.keys()))
-
-    # for k, v in output_dict.items():
-    #     print("device: {} \toutput: {}".format(k, v))
+    # For each device in our Nornir environment the show commands in the 'send_commands' list will be executed
+    # output_dict be a dictionary of dictionaries.
+    # See the 'send_napalm_commands' function for more details
+    # to print out values that can help with debugging and understanding the data structures change debug to True
+    # debug=True (by default it is False and it is an optional argument)
+    # Setting the show_output value to True will print out the Ansible-like output for the Nornir discovery run
+    # Sometimes that can be a bit overwhelming and so that option lets you turn it on or off.
+    output_dict = send_napalm_commands(send_commands, show_output=True, debug=False)
 
 
     # Napalm does not have a direct get_vlan method just yet and so its up to us to get the vlan data into a
@@ -130,15 +144,19 @@ def main():
 
         # I broke out the parsing into a function because it can often be re-used elsewhere
         # parsed_results will be a list.
-        # to print out values that can help with debuggign and undersatnding the data structures change debug to True
+        # to print out values that can help with debugging and understanding the data structures change debug to True
         # debug=True
-        parsed_results = parse_with_texfsm(output, template_file, debug=True)
+        parsed_results = parse_with_texfsm(output, template_file, debug=False)
 
-        print("=" * 40)
-        print("{:7}\t{:20}\t{:10}\t{:18}\t{}".format("VLAN_ID", "NAME", "STATUS", "TOTAL_INT_IN_VLAN", "ACTION"))
+        print("=" * 80)
+        print("Analyzing Vlans and required actions to implement new vlan policy for device {}".format(dev))
+        print("\n{:7}\t{:20}\t{:10}\t{:18}\t{}".format("VLAN_ID", "NAME", "STATUS", "TOTAL_INT_IN_VLAN", "ACTION"))
 
+        # For each device we will go through all the vlans currently configured on the device and make a
+        # determination as to action (no ports = Remove)
+        # We also only want to look at the commonly used vlans and not remove internal use vlans.
         for vlan_data in parsed_results:
-            # We are only interested in vlans between 2 and 999
+            # We are only interested in vlans between 1 and 999
             # vlan_data[0] is the vlan number
             if 0 < int(vlan_data[0]) < 1000:
 
@@ -150,7 +168,7 @@ def main():
                     vlan_action = "Keeping this vlan"
                 print("{:7}\t{:20}\t{:10}\t{:18}\t{}".format(vlan_data[0], vlan_data[1], vlan_data[2],
                                                              len(vlan_data[3]), vlan_action))
-        print("=" * 40)
+        print("=" * 80)
 
 
 
@@ -159,8 +177,5 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Script Description",
                                      epilog="Usage: ' python nornir_discovery' ")
 
-    # #parser.add_argument('all', help='Execute all exercises in week 4 assignment')
-    # parser.add_argument('-a', '--all', help='Execute all exercises in week 4 assignment', action='store_true',
-    #                     default=False)
     arguments = parser.parse_args()
     main()
