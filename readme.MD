@@ -2,7 +2,9 @@
 
 ## Goal
 
-Evaluate vlan state of switches in the environment and remove any vlans that are not in use.  In addition, ensure that a standard set of vlans is configured on each switch:
+Here is a small network engineering/network operations task we would like to automate.
+
+ We must evaluate the vlan state of switches in the environment and remove any vlans that are not in use.  In addition, we must ensure that a standard set of vlans is configured on each switch:
 - 10 for Data
 - 100 for Voice
 - 300 for Digital Signage
@@ -10,9 +12,16 @@ Evaluate vlan state of switches in the environment and remove any vlans that are
 
 We will take this one step at a time.  First, we will query our devices for the data that we need to help us decide what vlans to keep and what vlans to remove (via the show vlan IOS command).  Next, we will take that data and generate a customized configuration "snippet" or set of commands that we can later apply to each device to achieve our desired result.  When we are done each switch will only have Vlans that are in use and a standard set of vlans supporting voice, data, digital signage, and user devices with static IPs.  As an added wrinkle, I have some devices that are only accessible via Telnet (you would be surprised at how often I find this to be the case.)
 
-## Summary
 
-This task may not be completely real world, but all the strategies and tools used to accomplish this are very applicable to real world scenarios and in fact are based on work I'm currently doing for a Client.
+## Assumptions
+
+This task may not be completely "real world", but all the strategies and tools used to accomplish this are very applicable to real world scenarios and in fact are based on work I'm currently doing for a Client.
+
+Assumptions:
+- All devices in our current inventory are switches
+- We only care about vlans 2 through 999
+- In this exercise we only want to generate the proposed configurations and save them to file for later review.  We will apply the configuration at a later time.
+
 
 ## Environment and Connections
 
@@ -50,12 +59,12 @@ defaults:
 
 Our *hosts.yaml* file has expanded to 4 devices and has some additional attributes.  Notice that the group attribute has to be a list and I show two ways of entering that into your hosts file.  You can use the python square bracket ['element1', 'element2'] convention used for the eu-med-as01 device or the yaml indented "-"" notation used for the pacific-as01 device. Both are equally valid.
 
-It is a good practice to check you YAML files with a [YAML linter](http://www.yamllint.com/).  If there are issues with these files, you won't get far and save yourself the time troubleshooting what may just be a spacing issue!
+It is a good practice to check you YAML files with a [YAML linter](http://www.yamllint.com/).  If there are issues with these files, you won't get far.  A quick check with a linter saves you the time you might otherwise spend troubleshooting what may just be a spacing issue!
 
-The other item to point out here was the "wrinkle" I mentioned when describing the scenario.  Some devices do not support ssh.
-Thankfully, [Kirk Byers](https://pynet.twb-tech.com/), author of Netmiko added Telnet support and Napalm, which leverages Netmiko for some device connections, can make use of it.   You can see how to do that below.
+The other item to point out here is the "wrinkle" I mentioned when describing the scenario, Telnet.  Some devices do not support SSH.
+Thankfully, [Kirk Byers](https://pynet.twb-tech.com/), author of Netmiko added Telnet support and Napalm, which leverages Netmiko for some device connections, can make use of it.   You can see how to do that in the *hosts.yaml* file below.
 
-We are leveraging the *optional_args* optional argument in the [Nornir napalm connection Plugin](https://brigade.readthedocs.io/en/latest/plugins/tasks/connections.html?highlight=optional_args).
+We are leveraging the *optional_args* optional argument in the [Nornir napalm connection Plugin](https://brigade.readthedocs.io/en/latest/plugins/tasks/connections.html?highlight=optional_args).  
 
 
 **hosts.yaml**
@@ -95,7 +104,7 @@ The script *nornir_discovery.py* instantiates the Nornir environment defined wit
 
 Once we obtain the show vlan output we will put it in a data structure that lets us analyze it.  The *nornir_discovery.py* script is just to show you how this query part works.   You can run it so you can get an idea of the processing we are doing before getting to the configuration creation part of the program.
 
-Note that in this analysis includes Vlan1 however in the actual processing we will exclude Vlan1 as we don't want to remove it (and can't anyway) 
+Note that in this analysis includes Vlan1 however in the actual processing we will exclude Vlan1 as we don't want to remove it (and can't anyway)
 
 ```
 (nornir) Claudias-iMac:nornir-config claudia$ python nornir_discovery.py
@@ -215,7 +224,7 @@ VLAN_ID NAME                    STATUS          TOTAL_INT_IN_VLAN       ACTION
 571     VLAN0571                active                           0      This vlan will be removed!
 888     Native_Vlan888          active                           0      This vlan will be removed!
 ================================================================================
-(nornir) Claudias-iMac:nornir-config claudia$ 
+(nornir) Claudias-iMac:nornir-config claudia$
 
 
 ```
@@ -305,34 +314,34 @@ task.host["rendered_cfg"] = task.run(task=template_file, template=j2template, pa
 
 ```
 
-What exactly is happening here you ask?  Well we are running a Nornir "task" actually called **task** because we are in a "task" function called from within the Nornir instance in main (see the main section r = nornir_instance.run(task=**config_to_file**, arg=j2_data_dict)).  
+What exactly is happening here you ask?  Well we are running a Nornir "task" actually called **task**.  This can be a little confusing at first but we are in a Nornir "task" function called from within the Nornir instance in the main function (r = nornir_instance.run(task=**config_to_file**, arg=j2_data_dict)).  
 
 Looking at the arguments we are giving to task.run
 - we are running the Nornir configuration task "template_file"  
 - we are passing the j2template value
-- we are passing a path value that is empty so that Nornir will look for the Jinja2 tempalte in the current working directory.
+- we are passing a path value that is empty so that Nornir will look for the Jinja2 template in the current working directory.
 If we passed it path-'./templates' it would look for the jinja2 template in the templates directory under the current working directory
 
 ```python
 task.host["rendered_cfg"] = task.run(task=template_file, template=j2template, path='./templates', info=arg)
 ```
 
-so with the first 3 arguments weve defined the task we are asking Nornir to run, we are telling it what Jinja2 template to use and where to find it.    With just these 3 arguments we could generate configs that only used data defined in the task.  However we have spent time constructing a dictionary that has the vlans to remove for each device and so we have to pass an optional arugment "info=arg".
+So with the first 3 arguments we've defined the task we are asking Nornir to run, we are telling it what Jinja2 template to use and where to find it.    With just these 3 arguments we could generate configs that only used data defined in the task.  However we have spent time constructing a dictionary that has the vlans to remove for each device and so we have to pass an optional argument "info=arg".
 
 The variable "info" is what the Jinja2 template will look for.
 
-Remember the **for** statement in our Jinja2 template?  That is where "info" came from.  
+Remember the **for** statement in our Jinja2 template?  This is where "info" came from. We passed it to the Nornir Jinja2 rendering task as an additional argument when we called task.run(task=template_file...).
 ```
 {% for vlan2remove in info[host.name] %}
 ```
 
-What is in "info"?  It is a dictionary where the key map to the host name and the value is a list of vlans to remove.
+What is in "info"?  It is a dictionary where the key maps to the host name and the value is a list of vlans to remove.
 
 Think of this {'sw1':[2.7.9], 'sw2': [201,700]}.
 
 How do I know this?  Because that is what we passed the *config_to_file** task function when we called it from the main function in our *nornir_config_create.py* script.
 
-In the main function of our *nornir_config_create.py* we called (or ran) the *config_to_file* function as a **task** in our Nornir instance.  In our case we also passed a dictionary called j2_data_dict into the optional arguemt variable "arg".  
+In the main function of our *nornir_config_create.py* we called (or ran) the *config_to_file* function as a **task** in our Nornir instance.  In our case we also passed a dictionary called j2_data_dict into the optional argument variable "arg".  
 
 In main:
 ```python
@@ -355,7 +364,8 @@ no vlan{{ vlan2remove }}
 {% endfor %}
 ```
 
-I hope I'm not belaboring the point but I find that "chain" of variables all the way to the Jinja2 template can be a bit confusing (at least for me).  Lets hope I've lessend the confusion and not added to it!
+
+I hope I'm not belaboring the point but I find that "chain" of variables all the way to the Jinja2 template can be a bit confusing (at least for me).  Lets hope I've lessened the confusion and not added to it!
 
 Finally lets look at our main function.  I've added comments throughout to try to more fully explain what is going on each step of the way.
 
@@ -413,7 +423,7 @@ def main():
 ```
 
 
-Upon sucessful exeution of this script you should see new configuration files with a "cfg-" prefix in your working directory.
+Upon successful execution of this script you should see new configuration files with a "cfg-" prefix in your working directory.
 
 ```bash
 (nornir) Claudias-iMac:nornir-config claudia$ ls -al cfg*
@@ -425,7 +435,7 @@ Upon sucessful exeution of this script you should see new configuration files wi
 ```
 
 
-Lets look at one. 
+Lets look at one.
 
 ```
 (nornir) Claudias-iMac:nornir-config claudia$ cat cfg-arctic-as01.txt
@@ -454,7 +464,7 @@ vlan 666
 
 ```
 
-So for the switch with hostname arctic-as01, we are removing vlan20, 30, and 40 and adding the 4 standard vlans per our new policy.
+So for the switch with hostname arctic-as01, we are removing vlans 20, 30, and 40 and adding the 4 standard vlans per our new policy.
 
 If you recall from the discovery script output:
 ```
@@ -472,7 +482,7 @@ VLAN_ID NAME                    STATUS          TOTAL_INT_IN_VLAN       ACTION
 
 ```
 
-I think that is quite enough for now.  I hope all (or some) of this has been useful.   In our next installment I'll look at taking the customized configurations we've created and applyting them to each device and validating that each device is now compliant with our new vlan policy.
+I think that is quite enough for now.  I hope all (or some) of this has been useful.   In our next installment I'll look at taking the customized configurations we've created and applying them to each device and validating that each device is now compliant with our new vlan policy.
 
 
 
@@ -487,7 +497,4 @@ I think that is quite enough for now.  I hope all (or some) of this has been use
 - Idempotency (we have all the data we need!)
 
 - Refactor
--- One of the things you will notice as you spend more and more time with automation is that you continually improve your code.  Your code will do the same thing but it will be better than it was before (cleaner, faster, more efficient, and more elegant).  Basically the [6 Million Dollar Man](https://youtu.be/0CPJ-AbCsT8). 
-
-
-
+-- One of the things you will notice as you spend more and more time with automation is that you continually improve your code.  Your code will do the same thing but it will be better than it was before (cleaner, faster, more efficient, and more elegant).  Basically refactoring is the [6 Million Dollar Man](https://youtu.be/0CPJ-AbCsT8).
