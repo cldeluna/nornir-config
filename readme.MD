@@ -2,13 +2,13 @@
 
 ## Goal
 
-Evaluate vlan state of switches in the environment and remove any vlans that are not in use.  In addition ensure that a standard set of vlans is configured on each switch:
+Evaluate vlan state of switches in the environment and remove any vlans that are not in use.  In addition, ensure that a standard set of vlans is configured on each switch:
 - 10 for Data
 - 100 for Voice
 - 300 for Digital Signage
 - 666 for User Static IP Devices
 
-We will take this one step at a time.  First we will query our devices for the data that we need to help us decide what vlans to keep and what vlans to remove (via the show vlan IOS command).  We will then take that data and generate a customized configuration "snippet" or set of commands that we can later apply to each device to achieve our desired result.  When we are done each switch will only have Vlans that are in use and a standard set of vlans supporting voice, data, digital signage, and user devices with static IPs.  As an added wrinkle, I have some devices that are only accessible via Telnet (you would be surprised at how often I find this to be the case.)
+We will take this one step at a time.  First, we will query our devices for the data that we need to help us decide what vlans to keep and what vlans to remove (via the show vlan IOS command).  Next, we will take that data and generate a customized configuration "snippet" or set of commands that we can later apply to each device to achieve our desired result.  When we are done each switch will only have Vlans that are in use and a standard set of vlans supporting voice, data, digital signage, and user devices with static IPs.  As an added wrinkle, I have some devices that are only accessible via Telnet (you would be surprised at how often I find this to be the case.)
 
 ## Summary
 
@@ -18,9 +18,9 @@ This task may not be completely real world, but all the strategies and tools use
 
 We spent a little bit of time reviewing the environment set up for Nornir when we [first looked at Nornir](https://www.linkedin.com/pulse/my-first-brigade-claudia-de-luna/?published=t).
 
-Lets expand on that here.
+Let's expand on that here.
 
-We still have our groups.yaml file with a few more groups for us to use in the future.
+We still have our *groups.yaml* file with a few more groups for us to use in the future.
 
 **groups.yaml**
 
@@ -48,10 +48,9 @@ defaults:
   nornir_nos: ios
 ```
 
-Our hosts.yaml file has expanded to 4 devices and has some additional attributes.  Notice that the group attribute has to be a list and I show two ways of entering that into your hosts file.  You can use the python ['element1', 'element2'] convention used for the eu-med-as01 device or the yaml indented "-"" notation used for the pacific-as01 device. Both are equally valid.
+Our *hosts.yaml* file has expanded to 4 devices and has some additional attributes.  Notice that the group attribute has to be a list and I show two ways of entering that into your hosts file.  You can use the python square bracket ['element1', 'element2'] convention used for the eu-med-as01 device or the yaml indented "-"" notation used for the pacific-as01 device. Both are equally valid.
 
-Its a good practice to check you YAML files with a [YAML linter](http://www.yamllint.com/).  If there are issues with these files, you won't get far!
-
+It is a good practice to check you YAML files with a [YAML linter](http://www.yamllint.com/).  If there are issues with these files, you won't get far and save yourself the time troubleshooting what may just be a spacing issue!
 
 The other item to point out here was the "wrinkle" I mentioned when describing the scenario.  Some devices do not support ssh.
 Thankfully, [Kirk Byers](https://pynet.twb-tech.com/), author of Netmiko added Telnet support and Napalm, which leverages Netmiko for some device connections, can make use of it.   You can see how to do that below.
@@ -455,7 +454,7 @@ vlan 666
 
 ```
 
-So for the switch with hostname arctic-as1, we are removing vlan20, 30, and 40 and adding the 4 standard vlans per our new policy.
+So for the switch with hostname arctic-as01, we are removing vlan20, 30, and 40 and adding the 4 standard vlans per our new policy.
 
 If you recall from the discovery script output:
 ```
