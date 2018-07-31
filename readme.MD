@@ -487,7 +487,7 @@ I think that is quite enough for now.  I hope all (or some) of this has been use
 - Idempotency (we have all the data we need!)
 
 - Refactor
-One of the things you will notice as you spend more and more time with automation is that you continually improve your code.  Your code will do the same thing but it will be better than it was before (cleaner, faster, more efficient, and more elegant).  Basically the [6 Million Dollar Man](https://youtu.be/0CPJ-AbCsT8). 
+-- One of the things you will notice as you spend more and more time with automation is that you continually improve your code.  Your code will do the same thing but it will be better than it was before (cleaner, faster, more efficient, and more elegant).  Basically the [6 Million Dollar Man](https://youtu.be/0CPJ-AbCsT8). 
 
 
 
