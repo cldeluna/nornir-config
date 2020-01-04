@@ -14,7 +14,7 @@ __license__ = "Python"
 
 import argparse
 import textfsm
-from nornir.core import InitNornir
+from nornir import InitNornir
 from nornir.plugins.tasks.networking import napalm_cli
 from nornir.plugins.functions.text import print_result
 

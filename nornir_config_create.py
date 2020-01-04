@@ -14,7 +14,7 @@ __license__ = "Python"
 
 import argparse
 import nornir_discovery
-from nornir.core import InitNornir
+from nornir import InitNornir
 from nornir.plugins.functions.text import print_result
 from nornir.plugins.tasks.text import template_file
 
@@ -83,13 +83,14 @@ def main():
     # Execute a task "run" in the Nornir environment using our config_file Task function and pass it the customized data
     # which is required to build out a custom config for each device removing any unused vlans and adding the standard
     # vlans
+    print(f"Generating configurations")
     r = nornir_instance.run(task=config_to_file, arg=j2_data_dict)
 
     print("\n")
     # Prints abbreviated output
     print_result(r, vars=['stdout'])
     # Prints full output -- good for troubleshooting
-    # print_result(r)
+    print_result(r)
 
 
 # Standard call to the main() function.

@@ -1,28 +1,28 @@
 ---
 eu-med-as01:
-  nornir_host: 10.1.10.201
+  hostname: 10.1.10.102
   groups: ['uwaco_network']
 
 
 pacific-as01:
-  nornir_host: 10.1.10.203
+  hostname: 10.1.10.28
   groups:
     - 'uwaco_network'
     - 'access'
 
 
 ToR_esx01:
-  nornir_host: 10.1.10.202
+  hostname: 10.1.10.202
   groups: ['uwaco_datacenter']
-  napalm_options: {'transport': 'telnet','secret': 'cisco'}
+#  napalm_options: {'transport': 'telnet','secret': 'cisco'}
 
 
 arctic-as01:
-  nornir_host: 10.1.10.100
+  hostname: 10.1.10.100
   groups: ['uwaco_network']
-  napalm_options: {'transport': 'telnet','secret': 'cisco'}
+#  napalm_options: {'transport': 'telnet','secret': 'cisco'}
 
 #
 #test-fail:
-#  nornir_host: 10.1.10.77
+#  hostname: 10.1.10.77
 #  groups: ['uwaco_network']
