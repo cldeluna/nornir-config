@@ -4,7 +4,6 @@ uwaco_network:
   username: cisco
   password: cisco
 
-
 uwaco_datacenter:
   platform: ios
   username: cisco
