@@ -78,27 +78,40 @@ We are leveraging the *optional_args* optional argument in the [Nornir napalm co
 ```yaml
 ---
 eu-med-as01:
-  hostname: 10.1.10.201
+  hostname: 10.1.10.102
   groups: ['uwaco_network']
 
-
 pacific-as01:
-  hostname: 10.1.10.203
+  hostname: 10.1.10.28
   groups:
     - 'uwaco_network'
     - 'access'
 
-
 ToR_esx01:
   hostname: 10.1.10.202
   groups: ['uwaco_datacenter']
-  napalm_options: {'transport': 'telnet','secret': 'cisco'}
-
+  connection_options:
+    netmiko:
+       extras:
+         device_type: 'cisco_ios_telnet'
+    napalm:
+      extras:
+        optional_args:
+          transport: 'telnet'
+          secret: 'cisco'
 
 arctic-as01:
   hostname: 10.1.10.100
   groups: ['uwaco_network']
-  napalm_options: {'transport': 'telnet','secret': 'cisco'}
+  connection_options:
+    netmiko:
+       extras:
+         device_type: 'cisco_ios_telnet'
+    napalm:
+      extras:
+        optional_args:
+          transport: 'telnet'
+          secret: 'cisco'
 
 ```
 
