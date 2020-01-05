@@ -10,7 +10,13 @@ Here is a small network engineering/network operations task we would like to aut
 - 300 for Digital Signage
 - 666 for User Static IP Devices
 
-We will take this one step at a time.  First, we will query our devices for the data that we need to help us decide what vlans to keep and what vlans to remove (via the show vlan IOS command).  Next, we will take that data and generate a customized configuration "snippet" or set of commands that we can later apply to each device to achieve our desired result.  When we are done each switch will only have Vlans that are in use and a standard set of vlans supporting voice, data, digital signage, and user devices with static IPs.  As an added wrinkle, I have some devices that are only accessible via Telnet (you would be surprised at how often I find this to be the case.)
+We will take this one step at a time.  
+
+First, we will query our devices for the data that we need to help us decide what vlans to keep and what vlans to remove (via the show vlan IOS command).  
+
+Next, we will take that data and generate a customized configuration "snippet" or set of commands that we can later apply to each device to achieve our desired result.  When we are done, we will have a vlan configuration snippet we can apply so that each switch only has Vlans that are in use and a standard set of vlans supporting voice, data, digital signage, and user devices with static IPs.  
+
+As an added wrinkle, I have some devices that are only accessible via Telnet (you would be surprised at how often I find this to be the case.)
 
 
 ## Assumptions
@@ -25,7 +31,7 @@ Assumptions:
 
 ## Environment and Connections
 
-We spent a little bit of time reviewing the environment set up for Nornir when we [first looked at Nornir](https://www.linkedin.com/pulse/my-first-brigade-claudia-de-luna/?published=t).
+We spent a little bit of time reviewing the environment set up for Nornir when we [first looked at Nornir](https://gratuitous-arp.net/nornir-a-new-network-automation-framework/).
 
 Let's expand on that here.
 
@@ -36,28 +42,28 @@ We still have our *groups.yaml* file with a few more groups for us to use in the
 ```yaml
 ---
 uwaco_network:
-  nornir_username: cisco
-  nornir_password: cisco
-  nornir_nos: ios
+  platform: ios
+  username: cisco
+  password: cisco
 
 uwaco_datacenter:
-  nornir_username: cisco
-  nornir_password: cisco
-  nornir_nos: ios
+  platform: ios
+  username: cisco
+  password: cisco
 
 access:
-  nornir_username: cisco
-  nornir_password: cisco
-  nornir_nos: ios
-  model: 3800
+  platform: ios
+  username: cisco
+  password: cisco
 
 defaults:
-  nornir_username: cisco
-  nornir_password: cisco
-  nornir_nos: ios
+  platform: ios
+  username: cisco
+  password: cisco
+
 ```
 
-Our *hosts.yaml* file has expanded to 4 devices and has some additional attributes.  Notice that the group attribute has to be a list and I show two ways of entering that into your hosts file.  You can use the python square bracket ['element1', 'element2'] convention used for the eu-med-as01 device or the yaml indented "-"" notation used for the pacific-as01 device. Both are equally valid.
+Our *hosts.yaml* file has expanded to 4 devices and has some additional attributes.  Notice that the group attribute *has to be a list* and I show two ways of entering that into your hosts file.  You can use the python square bracket ['element1', 'element2'] convention used for the eu-med-as01 device or the yaml indented "-"" notation used for the pacific-as01 device. Both are equally valid.
 
 It is a good practice to check you YAML files with a [YAML linter](http://www.yamllint.com/).  If there are issues with these files, you won't get far.  A quick check with a linter saves you the time you might otherwise spend troubleshooting what may just be a spacing issue!
 
@@ -72,25 +78,25 @@ We are leveraging the *optional_args* optional argument in the [Nornir napalm co
 ```yaml
 ---
 eu-med-as01:
-  nornir_host: 10.1.10.201
+  hostname: 10.1.10.201
   groups: ['uwaco_network']
 
 
 pacific-as01:
-  nornir_host: 10.1.10.203
+  hostname: 10.1.10.203
   groups:
     - 'uwaco_network'
     - 'access'
 
 
 ToR_esx01:
-  nornir_host: 10.1.10.202
+  hostname: 10.1.10.202
   groups: ['uwaco_datacenter']
   napalm_options: {'transport': 'telnet','secret': 'cisco'}
 
 
 arctic-as01:
-  nornir_host: 10.1.10.100
+  hostname: 10.1.10.100
   groups: ['uwaco_network']
   napalm_options: {'transport': 'telnet','secret': 'cisco'}
 
@@ -100,11 +106,11 @@ arctic-as01:
 
 ##  Query Devices and Analyze
 
-The script *nornir_discovery.py* instantiates the Nornir environment defined with our hosts and groups YAML files and executes "show vlan" on every device in the environment.  Nornir has filtering mechanisms that let you act on just the devices you want but that is a topic for a later discussion.  To keep it simpler and let us focus on the important bits we are going to act on all 4 switches.  Later on filtering will seem trivial (it is).
+The script *nornir_discovery.py* instantiates the Nornir environment defined with our hosts and groups YAML files and executes "show vlan" on every device in the environment.  Nornir has filtering mechanisms that let you act on just the devices you want but that is a topic for a later discussion.  We will take the simpler approach now so that we can focus on the important bits we are going to act on for all 4 switches.  Later on filtering will seem trivial (it is).
 
 Once we obtain the show vlan output we will put it in a data structure that lets us analyze it.  The *nornir_discovery.py* script is just to show you how this query part works.   You can run it so you can get an idea of the processing we are doing before getting to the configuration creation part of the program.
 
-Note that in this analysis includes Vlan1 however in the actual processing we will exclude Vlan1 as we don't want to remove it (and can't anyway)
+Note that in this analysis Vlan1 is included however in the actual processing we will exclude Vlan1 as we don't want to remove it (and can't anyway)
 
 ```
 (nornir) Claudias-iMac:nornir-config claudia$ python nornir_discovery.py
@@ -261,9 +267,13 @@ def config_to_file(task, arg={}):
 ```
 
 
-We create a variable *j2template* to hold our Jinja2 template file.  We also create a filename for each of our devices where the resuling customized configuration will be saved.
+We create a variable *j2template* to hold our Jinja2 template file.  We also create a filename for each of our devices (cfg-<hostname>.txt) where the resuling customized configuration will be saved.
 
-The Jinja2 template itself is fairly straighforward. The "host" and "host.name" variables are set within the Nornir environment and passed to the *config_to_file* task.  The "info" dictionary was the tricky part as we needed a list of vlans to remove from each host. We built this as a dictionary where the key is the hostname and the value is the list of vlans to remove.   The **for** statement in the Jinja 2 template pulls the key:value pair for the device for which we are building the configuration using info[host.name].  The value is a list of vlans to remove.  The **for** loop iterates over this list and builds as many "no vlanXXXX" lines as required to remove all the unused vlans for that switch.
+The Jinja2 template itself is fairly straighforward. 
+
+The "host" and "host.name" variables are set within the Nornir environment and passed to the *config_to_file* function.  
+
+The "info" dictionary was the tricky part as we needed a list of vlans to remove from each host. We built this as a dictionary where the key is the hostname and the value is the list of vlans to remove.   The **for** statement in the Jinja 2 template pulls the key:value pair for the device for which we are building the configuration using info[host.name].  The value is a list of vlans to remove.  The **for** loop iterates over this list and builds as many "no vlanXXXX" lines as required to remove all the unused vlans for that switch.
 
 If you want to see the raw data add a statement just above the for loop to display that particular variable.
 
@@ -278,7 +288,28 @@ You will see something like this in the resulting configation file:
 ! [u'20', u'30', u'40']
 ```
 
-So we know that "host" and "host.name" are passed to our function via Nornir but how did we get the info dictionary in there?  That was also passed to the Jinja2 rendering "engine" when we ran our Nornir task as we will see in the *config_to_file* function.
+So we know that "host" and "host.name" are passed to our function via Nornir but how did we get the info dictionary in there?  That was also passed to the Jinja2 rendering "engine" when we ran our Nornir task.  You can see below that our 'corner_instance.run' command has two arguments.  We pass it the task which is our 'config_to_file function' and we also pass it an argument which is our Jinja2 data dictionary.
+
+```
+# ====== Generate Configs
+# Execute a task "run" in the Nornir environment using our config_file Task function and pass it the customized data
+# which is required to build out a custom config for each device removing any unused vlans and adding the standard
+# vlans
+print(f"Generating configurations")
+r = nornir_instance.run(task=config_to_file, arg=j2_data_dict)
+```
+
+Lets look at each piece in our task function 'config_to_file'. 
+
+First the Jinja2 Template file is fairly simple.  
+
+```
+j2template = 'vlan_updates.j2'
+```
+
+We have a simple comment showing is the switch name. We then iterate through the list of vlans to remove, if any, and generate the "no vlan" statements.
+
+Lastly we add the standard plans we want all switches to have.
 
 vlan_updates.j2 Jinja2 Template file
 
@@ -305,7 +336,7 @@ vlan 666
  name User_Static_IP_Devices
 ```
 
-We know what our Jinja2 template looks like now and hopefully we are getting an idea of how we got at least the host values to the template.   
+Now we know what our Jinja2 template looks like now and hopefully we are getting an idea of how we got at least the host values to the template.   
 
 This is our "money" command:
 
@@ -328,7 +359,7 @@ task.host["rendered_cfg"] = task.run(task=template_file, template=j2template, pa
 
 So with the first 3 arguments we've defined the task we are asking Nornir to run, we are telling it what Jinja2 template to use and where to find it.    With just these 3 arguments we could generate configs that only used data defined in the task.  However we have spent time constructing a dictionary that has the vlans to remove for each device and so we have to pass an optional argument "info=arg".
 
-The variable "info" is what the Jinja2 template will look for.
+The variable "info" is what the Jinja2 template will look for. 
 
 Remember the **for** statement in our Jinja2 template?  This is where "info" came from. We passed it to the Nornir Jinja2 rendering task as an additional argument when we called task.run(task=template_file...).
 ```
@@ -337,7 +368,7 @@ Remember the **for** statement in our Jinja2 template?  This is where "info" cam
 
 What is in "info"?  It is a dictionary where the key maps to the host name and the value is a list of vlans to remove.
 
-Think of this {'sw1':[2.7.9], 'sw2': [201,700]}.
+Think of this {'sw1':[2,7,9], 'sw2': [201,700]}.
 
 How do I know this?  Because that is what we passed the *config_to_file** task function when we called it from the main function in our *nornir_config_create.py* script.
 
