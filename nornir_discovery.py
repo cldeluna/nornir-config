@@ -41,25 +41,40 @@ def send_napalm_commands(cmds, show_output=False, debug=False):
 
     if isinstance(cmds, list):
 
+        # Instantiate the Nornir environment (based on our inventory hosts.yaml and groups.yaml
+        # and config.yaml, if it exists, files)
         nornir_instance = InitNornir(dry_run=True)
 
+        # Execute the commands in the 'cmds' variable using the napalm_cli plugin
         cli_result = nornir_instance.run(napalm_cli, commands=cmds)
 
         # Our goal is to build a dictionary of dictionaries
         # so that it can be referenced a bit more simply as output_dict[device1][showcmd1]
 
         # Iterate over the first set of keys in the results object which will represent each device
+        if debug: print(cli_result.keys())
         for dev_key in cli_result.keys():
 
             # Iterate over one or more results keys which represent the show command or show commands
             # extracted from each device
             # Alternatively we could use the cmds list to build the inside dict
             # but just in case something goes wrong, lets build it from the actual keys
-            if debug: print(cli_result[dev_key][0].result.keys())
+            if debug:
+                print(dev_key)
+                print(cli_result[dev_key][0].result.keys())
+                print(cli_result[dev_key])
+                print(dir(cli_result[dev_key]))
+                print(cli_result[dev_key][0])
+                print(cli_result[dev_key].failed)
+                print_result(cli_result)
 
-            for result_key in cli_result[dev_key][0].result.keys():
-                output_dict.update({dev_key: cli_result[dev_key][0].result[result_key]})
-
+            if cli_result[dev_key].failed:
+                # Nornir failed so print message and add the key to the output_dict with an empty list
+                print(cli_result[dev_key][0])
+                output_dict.update({dev_key: []})
+            else:
+                for result_key in cli_result[dev_key][0].result.keys():
+                    output_dict.update({dev_key: cli_result[dev_key][0].result[result_key]})
 
         if debug:
             for k,v in output_dict.items():

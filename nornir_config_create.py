@@ -31,7 +31,9 @@ def config_to_file(task, arg={}):
     # Define the Jinja2 template file we will use to build our custom commands for each device
     j2template = 'vlan_updates.j2'
 
+    # Generate a unique text file of commands for each device in our inventory
     filename = "cfg-{}.txt".format(task.host)
+
 
     task.host["rendered_cfg"] = task.run(task=template_file, template=j2template, path='', info=arg)
 
