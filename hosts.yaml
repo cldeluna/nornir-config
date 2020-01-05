@@ -36,7 +36,7 @@ arctic-as01:
           secret: 'cisco'
 
 # Dummy host to test failure
-test-fail:
-  hostname: 1.2.3.4
-  groups: ['uwaco_network']
+#test-fail:
+#  hostname: 1.2.3.4
+#  groups: ['uwaco_network']
 
