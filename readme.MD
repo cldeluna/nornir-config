@@ -18,10 +18,23 @@ Next, we will take that data and generate a customized configuration "snippet" o
 
 As an added wrinkle, I have some devices that are only accessible via Telnet (you would be surprised at how often I find this to be the case.)
 
+This repository builds upon the skills we used in [Nornir – A New Network Automation Framework](https://gratuitous-arp.net/nornir-a-new-network-automation-framework/). 
+
+This repository accompanies my post [Configuration Creation with Nornir](https://gratuitous-arp.net/configuration-creation-with-nornir/).
+
+## Installation
+
+1. [Define a nornir virtual environment with Python3](https://realpython.com/python-virtual-environments-a-primer/).
+2. Activate your new virtual environment
+3. Install all the required modules with the pip install command as shown below
+
+```
+pip install -r requirements.txt
+```
 
 ## Assumptions
 
-This task may not be completely "real world", but all the strategies and tools used to accomplish this are very applicable to real world scenarios and in fact are based on work I'm currently doing for a Client.
+There may be easier ways to achieve this specific task,  but all the strategies and tools used to accomplish this are very applicable to other real world scenarios and in fact are based on work I'm currently doing for a Client.
 
 Assumptions:
 - All devices in our current inventory are switches
@@ -35,9 +48,9 @@ We spent a little bit of time reviewing the environment set up for Nornir when w
 
 Let's expand on that here.
 
-We still have our *groups.yaml* file with a few more groups for us to use in the future.
+We still have our ***groups.yaml*** file with a few more groups for us to use in the future.
 
-**groups.yaml**
+###### **groups.yaml**
 
 ```yaml
 ---
@@ -63,17 +76,17 @@ defaults:
 
 ```
 
-Our *hosts.yaml* file has expanded to 4 devices and has some additional attributes.  Notice that the group attribute *has to be a list* and I show two ways of entering that into your hosts file.  You can use the python square bracket ['element1', 'element2'] convention used for the eu-med-as01 device or the yaml indented "-"" notation used for the pacific-as01 device. Both are equally valid.
+Our ***hosts.yaml*** file has expanded to 4 devices and has some additional attributes.  Notice that the group attribute *has to be a list* and I show two ways of entering that into your hosts file.  You can use the python square bracket ['element1', 'element2'] convention used for the **eu-med-as01** device or the yaml indented "-"" notation used for the **pacific-as01** device. Both are equally valid.
 
-It is a good practice to check you YAML files with a [YAML linter](http://www.yamllint.com/).  If there are issues with these files, you won't get far.  A quick check with a linter saves you the time you might otherwise spend troubleshooting what may just be a spacing issue!
+**Tip:** It is a good practice to check your YAML files with a [YAML linter](http://www.yamllint.com/).  If there are issues with these files, you won't get far.  A quick check with a linter saves you the time you might otherwise spend troubleshooting what may just be a spacing issue!
 
 The other item to point out here is the "wrinkle" I mentioned when describing the scenario, Telnet.  Some devices do not support SSH.
-Thankfully, [Kirk Byers](https://pynet.twb-tech.com/), author of Netmiko added Telnet support and Napalm, which leverages Netmiko for some device connections, can make use of it.   You can see how to do that in the *hosts.yaml* file below.
+
+Thankfully, [Kirk Byers](https://pynet.twb-tech.com/), author of Netmiko added Telnet support and Napalm, which leverages Netmiko for some device connections, can make use of it.   You can see how to do that in the ***hosts.yaml*** file below.
 
 We are leveraging the *optional_args* optional argument in the [Nornir napalm connection Plugin](https://brigade.readthedocs.io/en/latest/plugins/tasks/connections.html?highlight=optional_args).  
 
-
-**hosts.yaml**
+###### **hosts.yaml**
 
 ```yaml
 ---
@@ -119,9 +132,9 @@ arctic-as01:
 
 ##  Query Devices and Analyze
 
-The script *nornir_discovery.py* instantiates the Nornir environment defined with our hosts and groups YAML files and executes "show vlan" on every device in the environment.  Nornir has filtering mechanisms that let you act on just the devices you want but that is a topic for a later discussion.  We will take the simpler approach now so that we can focus on the important bits we are going to act on for all 4 switches.  Later on filtering will seem trivial (it is).
+The script ***nornir_discovery.py*** instantiates the Nornir environment defined with our hosts and groups YAML files and executes "show vlan" on every device in the environment.  Nornir has filtering mechanisms that let you act on just the devices you want but that is a topic for a later discussion.  We will take the simpler approach now so that we can focus on the important bits we are going to act on for all 4 switches.  Later on filtering will seem trivial (it is).
 
-Once we obtain the show vlan output we will put it in a data structure that lets us analyze it.  The *nornir_discovery.py* script is just to show you how this query part works.   You can run it so you can get an idea of the processing we are doing before getting to the configuration creation part of the program.
+Once we obtain the show vlan output we will put it in a data structure that lets us analyze it.  The ***nornir_discovery.py*** script is just to show you how this query part works.   You can run it so you can get an idea of the processing we are doing before getting to the configuration creation part of the program.
 
 Note that in this analysis Vlan1 is included however in the actual processing we will exclude Vlan1 as we don't want to remove it (and can't anyway)
 
@@ -249,14 +262,16 @@ VLAN_ID NAME                    STATUS          TOTAL_INT_IN_VLAN       ACTION
 ```
 
 
-In fact, the main configuration script, *nornir_config_create.py* imports the nornir_discovery.py script so it can make use of the two functions within that script:
+In fact, the main configuration script, ***nornir_config_create.py*** imports the ***nornir_discovery.py*** script so it can make use of the two functions within that script:
 - send_napalm_commands
 - parse_with_texfsm
 
-In *nornir_config_create.py* we put it all together with a Nornir "Task" function
+In ***nornir_config_create.py*** we put it all together with a Nornir "Task" function
 - config_to_file
 
-Here is where we start getting into "all that Nornir" does for us.  I've just scratched the surface!  These "Task" functions have some special behavior which I'm just figuring out myself.  They act in a task based manner against our selected inventory allowing us a collective task approach that says "do these things to these devices" in a way that does not involve iterating and applying logic to each device.  Wow!  It may take a bit to get used to and you really need to understand the objects you are getting back from Nornir so you can get to the data you want.  
+Here is where we start getting into "all that Nornir" does for us.  I've just scratched the surface!  These "Task" functions have some special behavior which I'm just figuring out myself.  
+
+They act in a task based manner against our selected inventory allowing us a collective task approach that says "do these things to these devices" in a way that does not involve iterating and applying logic to each device.  Wow!  It may take a bit to get used to and you really need to understand the objects you are getting back from Nornir so you can get to the data you want.  
 
 Lets look at the *config_to_file* function first.  
 
@@ -320,9 +335,9 @@ First the Jinja2 Template file is fairly simple.
 j2template = 'vlan_updates.j2'
 ```
 
-We have a simple comment showing is the switch name. We then iterate through the list of vlans to remove, if any, and generate the "no vlan" statements.
+We have a simple comment to display the switch name. We then iterate through the list of vlans to remove, if any, and generate the "no vlan" statements.
 
-Lastly we add the standard plans we want all switches to have.
+Lastly we add the standard vlans we want all switches to have.
 
 vlan_updates.j2 Jinja2 Template file
 
@@ -349,7 +364,7 @@ vlan 666
  name User_Static_IP_Devices
 ```
 
-Now we know what our Jinja2 template looks like now and hopefully we are getting an idea of how we got at least the host values to the template.   
+Now we know what our Jinja2 template looks like and hopefully we are getting an idea of how we got at least the host values to the template.   
 
 This is our "money" command:
 
@@ -358,7 +373,9 @@ task.host["rendered_cfg"] = task.run(task=template_file, template=j2template, pa
 
 ```
 
-What exactly is happening here you ask?  Well we are running a Nornir "task" actually called **task**.  This can be a little confusing at first but we are in a Nornir "task" function called from within the Nornir instance in the main function (r = nornir_instance.run(task=**config_to_file**, arg=j2_data_dict)).  
+What exactly is happening here you ask? 
+
+We are running a Nornir "task" actually called **task**.  This can be a little confusing at first but we are in a Nornir "task" function called from within the Nornir instance in the main function (r = nornir_instance.run(task=**config_to_file**, arg=j2_data_dict)).  
 
 Looking at the arguments we are giving to task.run
 - we are running the Nornir configuration task "template_file"  
@@ -383,9 +400,9 @@ What is in "info"?  It is a dictionary where the key maps to the host name and t
 
 Think of this {'sw1':[2,7,9], 'sw2': [201,700]}.
 
-How do I know this?  Because that is what we passed the *config_to_file** task function when we called it from the main function in our *nornir_config_create.py* script.
+How do I know this?  Because that is what we passed the *config_to_file** task function when we called it from the main function in our ***nornir_config_create.py*** script.
 
-In the main function of our *nornir_config_create.py* we called (or ran) the *config_to_file* function as a **task** in our Nornir instance.  In our case we also passed a dictionary called j2_data_dict into the optional argument variable "arg".  
+In the main function of our ***nornir_config_create.py*** we called (or ran) the *config_to_file* function as a **task** in our Nornir instance.  In our case we also passed a dictionary called j2_data_dict into the optional argument variable "arg".  
 
 In main:
 ```python
@@ -416,7 +433,7 @@ Finally lets look at our main function.  I've added comments throughout to try t
 ```python
 def main():
 
-    # Get our shov vlan output from each device in our inventory
+    # Get our show vlan output from each device in our inventory
     send_commands=['show vlan']
     output_dict = nornir_discovery.send_napalm_commands(send_commands, show_output=True, debug=False)
 
@@ -444,7 +461,7 @@ def main():
 
                 ints_in_vlan = len(vlan_data[3])
 
-                # If the vlan has no associated interfaces, the add it to the remove_vlan_list list
+                # If the vlan has no associated interfaces, then add it to the remove_vlan_list list
                 if ints_in_vlan == 0:
                     remove_vlan_list.append(vlan_data[0])
 
@@ -508,7 +525,7 @@ vlan 666
 
 ```
 
-So for the switch with hostname arctic-as01, we are removing vlans 20, 30, and 40 and adding the 4 standard vlans per our new policy.
+So for the switch with hostname **arctic-as01**, we are removing vlans 20, 30, and 40 and adding the 4 standard vlans per our new policy.
 
 If you recall from the discovery script output:
 ```
@@ -533,12 +550,16 @@ I think that is quite enough for now.  I hope all (or some) of this has been use
 ## Next Steps:
 
 - Apply the configurations
-
 - Introduce filtering of inventory devices
-
 - Start taking a more task oriented approach and use task naming
-
 - Idempotency (we have all the data we need!)
-
 - Refactor
--- One of the things you will notice as you spend more and more time with automation is that you continually improve your code.  Your code will do the same thing but it will be better than it was before (cleaner, faster, more efficient, and more elegant).  Basically refactoring is the [6 Million Dollar Man](https://youtu.be/0CPJ-AbCsT8).
+  - One of the things you will notice as you spend more and more time with automation is that you continually improve your code.  Your code will do the same thing but it will be better than it was before (cleaner, faster, more efficient, and more elegant).  Basically refactoring is the [6 Million Dollar Man](https://youtu.be/0CPJ-AbCsT8).
+  - While on this theme, you should always think about better ways to do your automation tasks perhaps with new tools and modules.
+
+
+
+## Licensing
+
+This code is licensed under the BSD 3-Clause License. See [LICENSE](https://github.com/CiscoDevNet/code-exchange-repo-template/blob/master/manual-sample-repo/LICENSE) for details.
+

@@ -45,7 +45,7 @@ def config_to_file(task, arg={}):
 
 def main():
 
-    # Get our shov vlan output from each device in our inventory
+    # Get our shoW vlan output from each device in our inventory
     send_commands=['show vlan']
     output_dict = nornir_discovery.send_napalm_commands(send_commands, show_output=True, debug=False)
 
@@ -73,7 +73,7 @@ def main():
 
                 ints_in_vlan = len(vlan_data[3])
 
-                # If the vlan has no associated interfaces, the add it to the remove_vlan_list list
+                # If the vlan has no associated interfaces, then add it to the remove_vlan_list list
                 if ints_in_vlan == 0:
                     remove_vlan_list.append(vlan_data[0])
 
