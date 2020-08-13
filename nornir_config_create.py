@@ -21,7 +21,7 @@ from nornir.plugins.tasks.text import template_file
 
 def config_to_file(task, arg={}):
     """
-    Nornir Task
+    Render configuration update snippet for a give switch
 
     :param task:
     :param arg:
@@ -34,13 +34,13 @@ def config_to_file(task, arg={}):
     # Generate a unique text file of commands for each device in our inventory
     filename = "cfg-{}.txt".format(task.host)
 
-
     task.host["rendered_cfg"] = task.run(task=template_file, template=j2template, path='', info=arg)
 
     with open(filename,"w") as cfg_file:
         cfg_file.write(str(task.host['rendered_cfg'][0]))
 
     print("\nCreated Configuration file {} for device {} in local directory...".format(task.host,filename))
+
 
 
 def main():
@@ -57,7 +57,6 @@ def main():
 
     # ======= Define the Nornir Environment ========
     nornir_instance = InitNornir()
-
 
     # For each device lets build out the list of vlans which must be removed
     for dev, output in output_dict.items():
@@ -85,14 +84,16 @@ def main():
     # Execute a task "run" in the Nornir environment using our config_file Task function and pass it the customized data
     # which is required to build out a custom config for each device removing any unused vlans and adding the standard
     # vlans
-    print(f"Generating configurations")
+    print(f"Generating configurations:")
     r = nornir_instance.run(task=config_to_file, arg=j2_data_dict)
 
-    print("\n")
+    # Debug print statements
+    # print("\n")
+    # print(r)
     # Prints abbreviated output
-    print_result(r, vars=['stdout'])
-    # Prints full output -- good for troubleshooting
-    print_result(r)
+    # print_result(r, vars=['stdout'])
+    # # Prints full output -- good for troubleshooting
+    # print_result(r)
 
 
 # Standard call to the main() function.

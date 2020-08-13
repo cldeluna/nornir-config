@@ -1,10 +1,14 @@
 # Using Nornir for Discovery and Configuration Creation
 
+[![published](https://static.production.devnetcloud.com/codeexchange/assets/images/devnet-published.svg)](https://developer.cisco.com/codeexchange/github/repo/cldeluna/nornir-config)
+
 ## Goal
 
 Here is a small network engineering/network operations task we would like to automate.
 
- We must evaluate the vlan state of switches in the environment and remove any vlans that are not in use.  In addition, we must ensure that a standard set of vlans is configured on each switch:
+![Network_config_and_status_example](Network_config_and_status_example.jpeg)
+
+We must evaluate the vlan state of switches in the environment and remove any vlans that are not in use.  In addition, we must ensure that a standard set of vlans is configured on each switch:
 - 10 for Data
 - 100 for Voice
 - 300 for Digital Signage
@@ -21,6 +25,8 @@ As an added wrinkle, I have some devices that are only accessible via Telnet (yo
 This repository builds upon the skills we used in [Nornir – A New Network Automation Framework](https://gratuitous-arp.net/nornir-a-new-network-automation-framework/). 
 
 This repository accompanies my post [Configuration Creation with Nornir](https://gratuitous-arp.net/configuration-creation-with-nornir/).
+
+Once you are comfortable with this repository, check out [How Network Engineers Can Manage Credentials and Keys More Securely in Python](https://gratuitous-arp.net/managing-credentials-and-keys-more-securely-in-python-for-network-engineers/) and incorporate better credential handling in your scripts!
 
 ## Installation
 
@@ -84,7 +90,7 @@ The other item to point out here is the "wrinkle" I mentioned when describing th
 
 Thankfully, [Kirk Byers](https://pynet.twb-tech.com/), author of Netmiko added Telnet support and Napalm, which leverages Netmiko for some device connections, can make use of it.   You can see how to do that in the ***hosts.yaml*** file below.
 
-We are leveraging the *optional_args* optional argument in the [Nornir napalm connection Plugin](https://brigade.readthedocs.io/en/latest/plugins/tasks/connections.html?highlight=optional_args).  
+We are leveraging the *optional_args* optional argument in the [Nornir napalm connection Plugin](https://nornir.readthedocs.io/en/latest/howto/transforming_inventory_data.html#Using-ConnectionOptions).  
 
 ###### **hosts.yaml**
 

@@ -3,6 +3,8 @@ eu-med-as01:
   hostname: 10.1.10.102
   groups: ['uwaco_network']
 
+# Examples of Optional Args
+# https://github.com/napalm-automation/napalm-ansible/issues/35
 pacific-as01:
   hostname: 10.1.10.28
   groups:
