@@ -10,7 +10,7 @@ future==0.18.2
 idna==2.9
 Jinja2==2.11.2
 junos-eznc==2.2.1
-lxml==4.5.0
+lxml==4.6.3
 MarkupSafe==1.1.1
 mypy-extensions==0.4.3
 napalm==2.5.0
